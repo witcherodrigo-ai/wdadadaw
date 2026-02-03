@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELED
+}
+
+enum CodeStatus {
+  AVAILABLE
+  RESERVED
+  DELIVERED
+  VOID
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String
+  price       Int
+  imageUrl    String?
+  platform    String
+  tags        String?
+  status      ProductStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  codes       ProductCode[]
+  orderItems  OrderItem[]
+}
+
+model ProductCode {
+  id         String     @id @default(cuid())
+  code       String     @unique
+  status     CodeStatus @default(AVAILABLE)
+  productId  String
+  product    Product    @relation(fields: [productId], references: [id])
+  orderItem  OrderItem? @relation(fields: [orderItemId], references: [id])
+  orderItemId String?
+  createdAt  DateTime   @default(now())
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  email         String
+  status        OrderStatus @default(PENDING)
+  paymentMethod String
+  total         Int
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
+  deliveries    DeliveryLog[]
+}
+
+model OrderItem {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     Order        @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product      @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Int
+  codes     ProductCode[]
+  createdAt DateTime     @default(now())
+}
+
+model DeliveryLog {
+  id           String     @id @default(cuid())
+  orderId      String
+  order        Order      @relation(fields: [orderId], references: [id])
+  orderItemId  String
+  orderItem    OrderItem  @relation(fields: [orderItemId], references: [id])
+  productCodeId String
+  productCode  ProductCode @relation(fields: [productCodeId], references: [id])
+  deliveredAt  DateTime   @default(now())
+}
+
+model Settings {
+  id            String  @id @default(cuid())
+  storeName     String
+  logoUrl       String?
+  accentColor   String?
+  whatsapp      String?
+  supportEmail  String?
+  refundPolicy  String?
+  terms         String?
+  socialLinks   Json?
+}
